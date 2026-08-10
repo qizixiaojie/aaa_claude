@@ -1,0 +1,8 @@
+services:
+  vue-app:
+    build: .
+    image: vue-app:latest
+    container_name: vue-app
+    ports:
+      - "${VUE_APP_PORT:-8080}:80"
+    restart: unless-stopped

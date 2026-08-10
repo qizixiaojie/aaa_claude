@@ -1,0 +1,53 @@
+// 医院预约系统 - Express 服务入口
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+
+const { ok, fail } = require('./utils/response');
+const authRoutes = require('./routes/auth');
+const departmentRoutes = require('./routes/departments');
+const doctorRoutes = require('./routes/doctors');
+const scheduleRoutes = require('./routes/schedules');
+const appointmentRoutes = require('./routes/appointments');
+const medicineRoutes = require('./routes/medicines');
+const prescriptionRoutes = require('./routes/prescriptions');
+const hospitalRoutes = require('./routes/hospital');
+const { seedDemoUsers } = require('./routes/auth');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// 统一前缀 /api 挂载各业务路由
+app.use('/api/auth', authRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/doctors', scheduleRoutes); // GET /api/doctors/:doctorId/schedules
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/medicines', medicineRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/hospital', hospitalRoutes);
+
+// 404
+app.use((req, res) => {
+  return fail(res, '接口不存在', 404);
+});
+
+// 全局错误处理中间件
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('[全局错误]', err);
+  return fail(res, '服务器内部错误', 500);
+});
+
+const PORT = Number(process.env.PORT) || 3000;
+app.listen(PORT, async () => {
+  console.log(`医院预约系统后端已启动: http://localhost:${PORT}`);
+  // 启动时若 users 表为空则创建演示账号
+  try {
+    await seedDemoUsers();
+  } catch (err) {
+    console.error('初始化演示账号失败（请确认数据库已导入 schema 且 .env 配置正确）:', err.message);
+  }
+});

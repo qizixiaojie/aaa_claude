@@ -1,0 +1,192 @@
+/* ============================================================
+   移动端全局样式（医院预约挂号小程序风格）
+   主题色：医疗蓝 #409eff；浅灰背景 #f5f7fa；
+   内容容器 max-width 480px 居中；底部预留 TabBar 高度
+   ============================================================ */
+
+:root {
+  /* 主题色 */
+  --color-primary: #409eff;
+  --color-primary-light: #ecf5ff;
+  --color-primary-dark: #337ecc;
+
+  /* 背景 / 卡片 */
+  --color-bg: #f5f7fa;
+  --color-card: #ffffff;
+
+  /* 文字 */
+  --text-main: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #c0c4cc;
+
+  /* 边框 / 分割线 */
+  --color-border: #e4e7ed;
+
+  /* 圆角与阴影 */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  /* 布局尺寸 */
+  --max-width: 480px;
+  --navbar-height: 48px;
+  --tabbar-height: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* 字体 */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
+/* ---------- 基础重置 ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+  background-color: var(--color-bg);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* ---------- 通用布局类 ---------- */
+
+/* 布局内页面：上下留白，水平内边距 */
+.page {
+  padding: 0 12px 24px;
+  min-height: calc(100vh - var(--navbar-height));
+}
+
+/* 无 TabBar 子页：白底，自带顶部返回栏，由 sub-page-header 占位 */
+.sub-page {
+  min-height: 100vh;
+  background-color: #fff;
+}
+
+/* 子页顶部返回栏 */
+.sub-page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 8px;
+  background-color: #fff;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sub-page-header__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.sub-page-header__back:active {
+  background-color: var(--color-primary-light);
+}
+
+.sub-page-header__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sub-page-content {
+  padding: 12px;
+}
+
+/* ---------- 通用卡片 ---------- */
+.card {
+  background-color: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 14px;
+}
+
+/* ---------- 底部固定操作栏（预约详情 / 挂号确认等） ---------- */
+.fixed-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  z-index: 30;
+  width: 100%;
+  max-width: var(--max-width);
+  padding: 10px 16px calc(10px + var(--safe-bottom));
+  background-color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.fixed-bar .el-button {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+}
+
+/* ---------- 通用工具类 ---------- */
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-price {
+  color: #f56c6c;
+  font-weight: 700;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

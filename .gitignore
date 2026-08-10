@@ -1,0 +1,25 @@
+# 依赖（node_modules 忽略；package-lock.json 需提交，保证 Docker npm ci 可复现构建）
+node_modules/
+
+# 构建产物
+dist/
+*.local
+
+# 环境变量与密钥（含数据库密码、JWT 密钥，绝不提交）
+.env
+.env.*
+!.env.example
+
+# 日志
+*.log
+logs/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 本地数据卷
+mysql-data/

@@ -1,0 +1,57 @@
+# 医院预约系统 · 完整部署（MySQL + 后端 + 前端）
+# 使用：docker compose up -d --build
+# 访问：前端 http://localhost:8080 ，后端 API http://localhost:3000/api
+# Navicat 连接：localhost:3306，用户 root，密码 root123456
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hospital-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: hospital_db
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动导入建库建表 + 种子数据 + 刷新当前排班
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed_data.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./database/refresh_schedules.sql:/docker-entrypoint-initdb.d/03-refresh-schedules.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build: ./backend
+    container_name: hospital-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root123456
+      DB_NAME: hospital_db
+      JWT_SECRET: hospital_secret_2026
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: ./vue-app
+    container_name: hospital-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql-data:
