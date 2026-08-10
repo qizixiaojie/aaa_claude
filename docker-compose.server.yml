@@ -1,0 +1,36 @@
+# 医院预约系统 · 服务器版编排（原生 MySQL + Docker 后端/前端）
+# 适用场景：服务器上已装好原生 MySQL（运行在 3306），Docker 只负责后端和前端
+# 使用：docker compose -f docker-compose.server.yml up -d --build
+# 前提：原生 MySQL 中已创建 hospital 用户并导入 database/*.sql（见 deploy-server.sh）
+#
+# 说明：
+# - 后端通过 host.docker.internal 访问宿主机上的原生 MySQL（Docker 20.10+ 支持 host-gateway）
+# - 前端 Nginx 反向代理 /api → backend:3000
+services:
+  backend:
+    build: ./backend
+    container_name: hospital-backend
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: host.docker.internal
+      DB_PORT: 3306
+      DB_USER: hospital
+      DB_PASSWORD: hospital123456
+      DB_NAME: hospital_db
+      JWT_SECRET: hospital_secret_2026
+      JWT_EXPIRES_IN: 7d
+    # 让容器内 host.docker.internal 指向宿主机
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: ./vue-app
+    container_name: hospital-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
