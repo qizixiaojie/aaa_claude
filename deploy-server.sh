@@ -5,6 +5,8 @@
 # 用法：在项目根目录执行  bash deploy-server.sh
 # =============================================================
 set -e
+# 禁用 ! 历史扩展，避免密码中的 ! 被 bash 解释
+set +H
 
 # 0. 检查 docker compose 插件
 if ! docker compose version >/dev/null 2>&1; then
@@ -15,13 +17,23 @@ fi
 echo "===== 1/5 创建 MySQL 远程用户 hospital ====="
 read -sp "请输入 MySQL root 密码（刚安装 MySQL 时设置的）: " MYSQL_ROOT_PW
 echo
-mysql -uroot -p"$MYSQL_ROOT_PW" -e "CREATE USER IF NOT EXISTS 'hospital'@'%' IDENTIFIED BY 'hospital123456'; GRANT ALL PRIVILEGES ON *.* TO 'hospital'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+# 创建 % 通配符用户（Navicat / Docker 后端均通过 TCP 连接，匹配该账号）
+# 隔离原则：仅授予 hospital_db 一个库的权限，不碰 root、不授全局权限
+mysql -uroot --password="$MYSQL_ROOT_PW" -e "
+  CREATE USER IF NOT EXISTS 'hospital'@'%' IDENTIFIED BY 'hospital123456';
+  ALTER USER 'hospital'@'%' IDENTIFIED BY 'hospital123456';
+  REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hospital'@'%';
+  GRANT ALL PRIVILEGES ON hospital_db.* TO 'hospital'@'%';
+  FLUSH PRIVILEGES;
+"
 echo "✅ 用户 hospital / hospital123456 已创建（供后端和 Navicat 使用）"
 
 echo "===== 2/5 导入数据库（建库建表 + 种子数据 + 刷新排班）====="
-mysql -uhospital -phospital123456 < database/schema.sql
-mysql -uhospital -phospital123456 < database/seed_data.sql
-mysql -uhospital -phospital123456 < database/refresh_schedules.sql
+# 直接使用 root 执行 SQL 文件，避免 hospital 的 localhost 权限问题
+mysql -uroot --password="$MYSQL_ROOT_PW" < database/schema.sql
+mysql -uroot --password="$MYSQL_ROOT_PW" < database/seed_data.sql
+mysql -uroot --password="$MYSQL_ROOT_PW" < database/refresh_schedules.sql
 echo "✅ 数据库 hospital_db 已创建并导入数据"
 
 echo "===== 3/5 开放防火墙端口 (3306/3000/8080) ====="
