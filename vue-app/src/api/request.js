@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '../router'
+import { useUserStore } from '../stores/user'
 
 /**
  * axios 实例：统一请求/响应处理
@@ -57,18 +58,25 @@ request.interceptors.response.use(
     return Promise.reject(new Error(message))
   },
   (error) => {
-    // HTTP 401：登录失效，清除 token 并跳转登录页
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      ElMessage.warning('登录已过期，请重新登录')
-      router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
-    } else {
-      // 其余错误：提示网络或后端错误信息
-      const message = (error.response && error.response.data && error.response.data.message) ||
-        error.message || '网络异常，请稍后重试'
-      ElMessage.error(message)
+      const msg = (error.response.data && error.response.data.message) || ''
+      const url = (error.config && error.config.url) || ''
+      // 登录/注册接口的 401 = 账号或密码错误（不是会话过期）：
+      // 展示后端真实原因，不做登出跳转
+      if (url.includes('/auth/login') || url.includes('/auth/register')) {
+        ElMessage.error(msg || '用户名或密码错误')
+      } else {
+        // 其余接口的 401 = 会话失效：真正登出（同时清内存与本地缓存）并跳登录页
+        useUserStore().logout()
+        ElMessage.warning(msg || '登录已过期，请重新登录')
+        router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
+      }
+      return Promise.reject(error)
     }
+    // 其余错误：提示网络或后端错误信息
+    const message = (error.response && error.response.data && error.response.data.message) ||
+      error.message || '网络异常，请稍后重试'
+    ElMessage.error(message)
     return Promise.reject(error)
   }
 )
