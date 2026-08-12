@@ -60,8 +60,9 @@ async function handleCancel(appt) {
 }
 
 // 支付成功
-function handlePaySuccess() {
-  ElMessage.success('支付成功')
+function handlePaySuccess(result) {
+  const cert = result?.payment?.paymentNo
+  ElMessage.success(cert ? `支付成功，支付凭证 ${cert}` : '支付成功')
   fetchList()
 }
 
@@ -98,6 +99,21 @@ onMounted(fetchList)
             <span class="appointments__label">挂号费</span>
             <span class="text-price">￥{{ Number(appt.fee).toFixed(2) }}</span>
           </div>
+          <div class="appointments__row">
+            <span class="appointments__label">预约时间</span>
+            <span>{{ appt.createdAt || '—' }}</span>
+          </div>
+          <!-- 已支付/已完成：展示支付时间与唯一支付凭证号 -->
+          <template v-if="appt.status === '已支付' || appt.status === '已完成'">
+            <div class="appointments__row">
+              <span class="appointments__label">支付时间</span>
+              <span>{{ appt.paidAt || '—' }}</span>
+            </div>
+            <div class="appointments__row">
+              <span class="appointments__label">支付凭证</span>
+              <span class="appointments__cert">{{ appt.paymentNo || '—' }}</span>
+            </div>
+          </template>
         </div>
 
         <!-- 按状态显示操作按钮 -->
@@ -185,6 +201,13 @@ onMounted(fetchList)
 
 .appointments__label {
   color: var(--text-secondary);
+}
+
+.appointments__cert {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: var(--text-regular);
+  word-break: break-all;
 }
 
 .appointments__actions {

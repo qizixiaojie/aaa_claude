@@ -82,7 +82,7 @@ onMounted(async () => {
       <!-- 医生信息 -->
       <template v-if="doctor">
         <div class="card doctor-detail__head">
-          <div class="doctor-detail__avatar">{{ doctor.name.charAt(0) }}</div>
+          <div class="doctor-detail__avatar">{{ doctor.name ? doctor.name.charAt(0) : '医' }}</div>
           <div class="doctor-detail__head-info">
             <div class="doctor-detail__name">
               {{ doctor.name }}

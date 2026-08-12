@@ -72,14 +72,20 @@ router.get('/:id', async (req, res) => {
 
   if (rows.length === 0) return fail(res, '医生不存在', 404);
   const r = rows[0];
+  // 擅长/简介为空时自动生成占位内容，避免详情页空白
+  const specialty = r.specialty || `${r.depName || '临床'}常见病的诊断与治疗`;
+  const experienceText = r.yearsExperience > 0 ? `${r.yearsExperience} 年` : '多年';
+  const introduction =
+    r.introduction ||
+    `${r.name}，${r.title}，从事${r.depName || '临床'}工作${experienceText}，临床经验丰富，医德高尚，深受患者信赖。`;
   return ok(res, {
     doctor: {
       id: r.id,
       name: r.name,
       gender: r.gender,
       title: r.title,
-      specialty: r.specialty,
-      introduction: r.introduction,
+      specialty,
+      introduction,
       regFee: r.regFee,
       yearsExperience: r.yearsExperience,
       avatar: r.avatar,

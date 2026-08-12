@@ -91,10 +91,13 @@ async function handleConfirm() {
   }
 }
 
-// 支付成功：展示排队号并跳我的预约
-function handlePaySuccess() {
+// 支付成功：展示排队号与支付凭证号，并跳我的预约
+function handlePaySuccess(payResult) {
   const queueNo = currentOrder.value?.appointment?.queueNo
-  ElMessage.success(`支付成功，您的排队号为 ${queueNo ?? '—'}`)
+  const cert = payResult?.payment?.paymentNo
+  let msg = `支付成功！排队号 ${queueNo ?? '—'}`
+  if (cert) msg += `，支付凭证 ${cert}`
+  ElMessage.success(msg)
   router.push({ name: 'appointments' })
 }
 

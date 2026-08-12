@@ -12,6 +12,28 @@ function genNo(prefix) {
   return `${prefix}${Date.now()}${String(Math.floor(1000 + Math.random() * 9000))}`;
 }
 
+// 支付凭证号：13 位数字 + 2 位大写字母（随机生成，不携带时间/订单等可读信息，查库保证唯一）
+async function genCertificateNo(conn) {
+  const digits = '0123456789';
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 剔除易混淆的 I、O
+  for (let i = 0; i < 5; i++) {
+    let no = '';
+    for (let d = 0; d < 13; d++) no += digits[Math.floor(Math.random() * 10)];
+    no += letters[Math.floor(Math.random() * letters.length)];
+    no += letters[Math.floor(Math.random() * letters.length)];
+    const [rows] = await conn.query('SELECT id FROM payments WHERE payment_no = ?', [no]);
+    if (rows.length === 0) return no;
+  }
+  // 极小概率碰撞兜底
+  return `0${Date.now()}`.slice(0, 13) + letters.slice(0, 2);
+}
+
+// 本地时间格式化：YYYY-MM-DD HH:mm:ss
+function formatDateTime(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 // POST /api/appointments  body{doctorId,scheduleId,appointDate,period} 需登录
 router.post('/', auth, async (req, res) => {
   const { doctorId, scheduleId, appointDate, period } = req.body || {};
@@ -89,6 +111,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // GET /api/appointments/my 需登录
+// 说明：不返回已取消的预约（取消后即从列表移除）；已支付/已完成附带上支付时间与支付凭证号
 router.get('/my', auth, async (req, res) => {
   const rows = await query(`
     SELECT a.id,
@@ -100,6 +123,8 @@ router.get('/my', auth, async (req, res) => {
            a.queue_no AS queueNo,
            DATE_FORMAT(a.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt,
            a.patient_name AS patientName,
+           pay.payment_no AS paymentNo,
+           DATE_FORMAT(pay.paid_at, '%Y-%m-%d %H:%i:%s') AS paidAt,
            doc.id AS doctorId,
            doc.name AS doctorName,
            doc.title AS doctorTitle,
@@ -107,7 +132,8 @@ router.get('/my', auth, async (req, res) => {
     FROM appointments a
     JOIN doctors doc ON doc.id = a.doctor_id
     LEFT JOIN departments dep ON dep.id = doc.department_id
-    WHERE a.user_id = ?
+    LEFT JOIN payments pay ON pay.order_no = a.order_no
+    WHERE a.user_id = ? AND a.status <> '已取消'
     ORDER BY a.created_at DESC
   `, [req.userId]);
 
@@ -120,6 +146,8 @@ router.get('/my', auth, async (req, res) => {
     status: r.status,
     queueNo: r.queueNo,
     createdAt: r.createdAt,
+    paymentNo: r.paymentNo,
+    paidAt: r.paidAt,
     doctor: {
       id: r.doctorId,
       name: r.doctorName,
@@ -193,13 +221,15 @@ router.post('/:id/pay', auth, async (req, res) => {
       return fail(res, '当前状态不可支付');
     }
 
-    // 1. 插入支付记录（模拟成功）
-    const paymentNo = genNo('PAY');
+    // 1. 插入支付记录（模拟成功）：生成唯一支付凭证号（13 位数字 + 2 位字母，随机无规律），
+    //    支付成功时间 paid_at = NOW() 即此刻
+    const paymentNo = await genCertificateNo(conn);
     await conn.query(
       `INSERT INTO payments (payment_no, user_id, order_no, amount, method, status, paid_at)
        VALUES (?,?,?,?,?,'成功', NOW())`,
       [paymentNo, req.userId, appt.order_no, appt.fee, method]
     );
+    const paidAt = formatDateTime(new Date());
 
     // 2. 预约置为已支付
     await conn.query('UPDATE appointments SET status = ? WHERE id = ?', ['已支付', id]);
@@ -209,7 +239,7 @@ router.post('/:id/pay', auth, async (req, res) => {
 
     await conn.commit();
     return ok(res, {
-      payment: { paymentNo, amount: appt.fee, method, status: '成功' },
+      payment: { paymentNo, paidAt, amount: appt.fee, method, status: '成功' },
     });
   } catch (err) {
     await conn.rollback();
