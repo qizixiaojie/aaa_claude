@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, HomeFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import PubPaymentDialog from '../components/PubPaymentDialog.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -120,6 +120,9 @@ onMounted(async () => {
         <el-icon :size="18"><ArrowLeft /></el-icon>
       </div>
       <span class="sub-page-header__title">预约挂号</span>
+      <div class="sub-page-header__home" @click="router.push({ name: 'home' })">
+        <el-icon :size="18"><HomeFilled /></el-icon>
+      </div>
     </header>
 
     <div class="sub-page-content booking__content">

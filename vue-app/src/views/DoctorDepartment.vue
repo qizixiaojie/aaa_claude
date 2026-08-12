@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, HomeFilled } from '@element-plus/icons-vue'
 import DoctorCard from '../components/DoctorCard.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { listDoctors } from '../api/doctors'
@@ -46,6 +46,9 @@ onMounted(async () => {
         <el-icon :size="18"><ArrowLeft /></el-icon>
       </div>
       <span class="sub-page-header__title">{{ department?.name || '科室医生' }}</span>
+      <div class="sub-page-header__home" @click="router.push({ name: 'home' })">
+        <el-icon :size="18"><HomeFilled /></el-icon>
+      </div>
     </header>
 
     <div class="sub-page-content">

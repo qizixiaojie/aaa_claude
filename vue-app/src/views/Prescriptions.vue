@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, ArrowUp, HomeFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StatusTag from '../components/StatusTag.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -68,6 +68,9 @@ onMounted(fetchList)
         <el-icon :size="18"><ArrowLeft /></el-icon>
       </div>
       <span class="sub-page-header__title">我的处方</span>
+      <div class="sub-page-header__home" @click="router.push({ name: 'home' })">
+        <el-icon :size="18"><HomeFilled /></el-icon>
+      </div>
     </header>
 
     <div class="sub-page-content">

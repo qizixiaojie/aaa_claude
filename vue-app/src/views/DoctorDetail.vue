@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Warning } from '@element-plus/icons-vue'
+import { ArrowLeft, Warning, HomeFilled } from '@element-plus/icons-vue'
 import SectionTitle from '../components/SectionTitle.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { getDoctor, getSchedules } from '../api/doctors'
@@ -73,6 +73,9 @@ onMounted(async () => {
         <el-icon :size="18"><ArrowLeft /></el-icon>
       </div>
       <span class="sub-page-header__title">医生详情</span>
+      <div class="sub-page-header__home" @click="router.push({ name: 'home' })">
+        <el-icon :size="18"><HomeFilled /></el-icon>
+      </div>
     </header>
 
     <div class="sub-page-content doctor-detail__content">

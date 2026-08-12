@@ -9,9 +9,9 @@ export function createAppointment(data) {
   return request.post('/appointments', data)
 }
 
-// 我的预约列表
+// 我的预约列表（后端路由为 /api/appointments/my）
 export function listAppointments() {
-  return request.get('/appointments')
+  return request.get('/appointments/my')
 }
 
 // 取消预约
