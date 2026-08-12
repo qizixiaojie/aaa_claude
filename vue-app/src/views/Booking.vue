@@ -23,7 +23,7 @@ const doctorId = route.params.doctorId
 
 const doctor = ref(null)
 const schedules = ref([])
-const patientName = ref(userStore.userInfo?.real_name || '')
+const patientName = ref(userStore.userInfo?.realName || '')
 const submitting = ref(false)
 
 // 患者信息缺失时的提示
@@ -33,8 +33,8 @@ const patientHint = computed(() => (patientName.value ? '' : '请填写患者姓
 const scheduleDays = computed(() => {
   const map = new Map()
   schedules.value.forEach((s) => {
-    if (!map.has(s.work_date)) map.set(s.work_date, [])
-    map.get(s.work_date).push(s)
+    if (!map.has(s.workDate)) map.set(s.workDate, [])
+    map.get(s.workDate).push(s)
   })
   return Array.from(map.entries()).sort((a, b) => (a[0] > b[0] ? 1 : -1))
 })
@@ -48,7 +48,7 @@ const selectedSchedule = computed(() => {
   )
 })
 
-const fee = computed(() => Number(doctor.value?.reg_fee || 0))
+const fee = computed(() => Number(doctor.value?.regFee || 0))
 
 // 支付弹窗状态
 const payDialogVisible = ref(false)
@@ -78,7 +78,7 @@ async function handleConfirm() {
     const appt = await createAppointment({
       doctorId,
       scheduleId: selectedSchedule.value.id,
-      appointDate: selectedSchedule.value.work_date,
+      appointDate: selectedSchedule.value.workDate,
       period: selectedSchedule.value.period,
       patientName: patientName.value.trim(),
     })
@@ -92,9 +92,9 @@ async function handleConfirm() {
 }
 
 // 支付成功：展示排队号并跳我的预约
-function handlePaySuccess(result) {
-  const queueNo = result.queue_no ?? result.queueNo
-  ElMessage.success(`支付成功，您的排队号为 ${queueNo}`)
+function handlePaySuccess() {
+  const queueNo = currentOrder.value?.appointment?.queueNo
+  ElMessage.success(`支付成功，您的排队号为 ${queueNo ?? '—'}`)
   router.push({ name: 'appointments' })
 }
 
@@ -131,10 +131,10 @@ onMounted(async () => {
               {{ doctor.name }} · {{ doctor.title }}
             </el-descriptions-item>
             <el-descriptions-item label="科室">
-              {{ doctor.department_name || doctor.department?.name || '未知科室' }}
+              {{ doctor.department?.name || '未知科室' }}
             </el-descriptions-item>
             <el-descriptions-item label="就诊日期">
-              {{ selectedSchedule ? selectedSchedule.work_date : '请选择' }}
+              {{ selectedSchedule ? selectedSchedule.workDate : '请选择' }}
             </el-descriptions-item>
             <el-descriptions-item label="就诊时段">
               {{ selectedSchedule ? selectedSchedule.period : '请选择' }}
@@ -157,11 +157,11 @@ onMounted(async () => {
                 class="booking__period"
                 :class="{
                   'booking__period--active': isSelected(s),
-                  'booking__period--disabled': s.remaining_slots <= 0,
+                  'booking__period--disabled': s.remainingSlots <= 0,
                 }"
-                @click="s.remaining_slots > 0 && pickSchedule(s)"
+                @click="s.remainingSlots > 0 && pickSchedule(s)"
               >
-                {{ s.period }} · 余 {{ s.remaining_slots }}
+                {{ s.period }} · 余 {{ s.remainingSlots }}
               </div>
             </div>
           </div>
@@ -185,9 +185,9 @@ onMounted(async () => {
       <PubPaymentDialog
         v-model="payDialogVisible"
         title="挂号费支付"
-        :order-no="currentOrder?.order_no || ''"
+        :order-no="currentOrder?.appointment?.orderNo || ''"
         :amount="fee"
-        :pay="(method) => payAppointment(currentOrder.id, { method })"
+        :pay="(method) => payAppointment(currentOrder?.appointment?.id, { method })"
         @success="handlePaySuccess"
       />
     </div>

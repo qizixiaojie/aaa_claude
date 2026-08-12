@@ -34,7 +34,7 @@ function goList() {
         {{ department.description || '暂无科室简介' }}
       </div>
     </div>
-    <div class="department-card__count">{{ department.doctor_count || 0 }} 位医生</div>
+    <div class="department-card__count">{{ department.doctorCount || 0 }} 位医生</div>
   </div>
 </template>
 

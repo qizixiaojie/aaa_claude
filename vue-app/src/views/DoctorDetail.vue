@@ -24,8 +24,8 @@ const selectedSchedule = ref(null)
 const scheduleDays = computed(() => {
   const map = new Map()
   schedules.value.forEach((s) => {
-    if (!map.has(s.work_date)) map.set(s.work_date, [])
-    map.get(s.work_date).push(s)
+    if (!map.has(s.workDate)) map.set(s.workDate, [])
+    map.get(s.workDate).push(s)
   })
   return Array.from(map.entries()).sort((a, b) => (a[0] > b[0] ? 1 : -1))
 })
@@ -44,7 +44,7 @@ function goBook() {
   const query = selectedSchedule.value
     ? {
         scheduleId: selectedSchedule.value.id,
-        date: selectedSchedule.value.work_date,
+        date: selectedSchedule.value.workDate,
         period: selectedSchedule.value.period,
       }
     : {}
@@ -86,11 +86,11 @@ onMounted(async () => {
               <el-tag size="small" type="primary" effect="plain">{{ doctor.title }}</el-tag>
             </div>
             <div class="doctor-detail__meta">
-              {{ doctor.department_name || doctor.department?.name || '未知科室' }}
-              · {{ doctor.years_experience }} 年从业经验
+              {{ doctor.department?.name || '未知科室' }}
+              · {{ doctor.yearsExperience }} 年从业经验
             </div>
             <div class="doctor-detail__fee">
-              挂号费 <span class="text-price">￥{{ doctor.reg_fee }}</span>
+              挂号费 <span class="text-price">￥{{ doctor.regFee }}</span>
             </div>
           </div>
         </div>
@@ -120,15 +120,15 @@ onMounted(async () => {
                   class="doctor-detail__period"
                   :class="{
                     'doctor-detail__period--active': isSelected(s),
-                    'doctor-detail__period--disabled': s.remaining_slots <= 0,
+                    'doctor-detail__period--disabled': s.remainingSlots <= 0,
                   }"
-                  @click="s.remaining_slots > 0 && pickSchedule(s)"
+                  @click="s.remainingSlots > 0 && pickSchedule(s)"
                 >
                   <span>{{ s.period }}</span>
                   <span class="doctor-detail__remain">
-                    <template v-if="s.remaining_slots > 0">
-                      余 {{ s.remaining_slots }} 号
-                      <el-tag v-if="s.remaining_slots < 5" size="small" type="danger" effect="light">
+                    <template v-if="s.remainingSlots > 0">
+                      余 {{ s.remainingSlots }} 号
+                      <el-tag v-if="s.remainingSlots < 5" size="small" type="danger" effect="light">
                         紧张
                       </el-tag>
                     </template>

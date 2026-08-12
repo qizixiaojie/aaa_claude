@@ -56,7 +56,7 @@ onMounted(async () => {
         <el-icon :size="30"><UserFilled /></el-icon>
       </el-avatar>
       <div class="profile__info">
-        <div class="profile__name">{{ userStore.userInfo?.real_name || userStore.userInfo?.username || '未设置姓名' }}</div>
+        <div class="profile__name">{{ userStore.userInfo?.realName || userStore.userInfo?.username || '未设置姓名' }}</div>
         <div class="profile__meta">
           手机号：{{ userStore.userInfo?.phone || '—' }}
           · {{ userStore.userInfo?.gender || '男' }}

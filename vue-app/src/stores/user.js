@@ -31,11 +31,12 @@ export const useUserStore = defineStore('user', () => {
     return registerApi(data)
   }
 
-  // 拉取当前登录用户信息
+  // 拉取当前登录用户信息（接口返回 { user }，与 login 保持一致只存用户对象）
   async function fetchMe() {
     const data = await getMe()
-    userInfo.value = data
-    localStorage.setItem('userInfo', JSON.stringify(data))
+    const user = data.user || data
+    userInfo.value = user
+    localStorage.setItem('userInfo', JSON.stringify(user))
     return data
   }
 

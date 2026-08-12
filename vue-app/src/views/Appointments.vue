@@ -79,8 +79,8 @@ onMounted(fetchList)
       <div v-for="appt in appointments" :key="appt.id" class="card appointments__item">
         <div class="appointments__head">
           <div class="appointments__doc">
-            {{ appt.doctor_name || '医生' }}
-            <span class="appointments__dept">{{ appt.department_name || appt.doctor?.department_name || '' }}</span>
+            {{ appt.doctor?.name || '医生' }}
+            <span class="appointments__dept">{{ appt.doctor?.department?.name || '' }}</span>
           </div>
           <StatusTag :status="appt.status" />
         </div>
@@ -88,11 +88,11 @@ onMounted(fetchList)
         <div class="appointments__rows">
           <div class="appointments__row">
             <span class="appointments__label">就诊时间</span>
-            <span>{{ appt.appoint_date }} {{ appt.period }}</span>
+            <span>{{ appt.appointDate }} {{ appt.period }}</span>
           </div>
           <div class="appointments__row">
             <span class="appointments__label">排队号</span>
-            <span>{{ appt.queue_no ?? '—' }}</span>
+            <span>{{ appt.queueNo ?? '—' }}</span>
           </div>
           <div class="appointments__row">
             <span class="appointments__label">挂号费</span>
@@ -128,7 +128,7 @@ onMounted(fetchList)
     <PubPaymentDialog
       v-model="payDialogVisible"
       title="挂号费支付"
-      :order-no="currentAppt?.order_no || ''"
+      :order-no="currentAppt?.orderNo || ''"
       :amount="Number(currentAppt?.fee || 0)"
       :pay="(method) => payAppointment(currentAppt.id, { method })"
       @success="handlePaySuccess"

@@ -74,22 +74,22 @@ onMounted(fetchList)
       <div v-loading="loading" class="prescriptions__list">
         <div v-for="p in prescriptions" :key="p.id" class="card prescriptions__item">
           <div class="prescriptions__head">
-            <div class="prescriptions__no">处方号：{{ p.presc_no }}</div>
+            <div class="prescriptions__no">处方号：{{ p.prescNo }}</div>
             <StatusTag :status="p.status" />
           </div>
 
           <div class="prescriptions__rows">
             <div class="prescriptions__row">
               <span class="prescriptions__label">开方医生</span>
-              <span>{{ p.doctor_name || '医生' }}</span>
+              <span>{{ p.doctorName || '医生' }}</span>
             </div>
             <div class="prescriptions__row">
               <span class="prescriptions__label">患者</span>
-              <span>{{ p.patient_name }}</span>
+              <span>{{ p.patientName }}</span>
             </div>
             <div class="prescriptions__row">
               <span class="prescriptions__label">总金额</span>
-              <span class="text-price">￥{{ Number(p.total_amount).toFixed(2) }}</span>
+              <span class="text-price">￥{{ Number(p.totalAmount).toFixed(2) }}</span>
             </div>
           </div>
 
@@ -110,11 +110,11 @@ onMounted(fetchList)
                 class="prescriptions__detail-item"
               >
                 <div class="prescriptions__detail-head">
-                  <span>{{ item.medicine_name || '药品' }}</span>
+                  <span>{{ item.medicineName || '药品' }}</span>
                   <span class="text-price">￥{{ Number(item.total).toFixed(2) }}</span>
                 </div>
                 <div class="prescriptions__detail-sub">
-                  规格 {{ item.specification || '—' }} · 数量 {{ item.quantity }} · 单价 ￥{{ Number(item.unit_price).toFixed(2) }}
+                  规格 {{ item.specification || '—' }} · 数量 {{ item.quantity }} · 单价 ￥{{ Number(item.unitPrice).toFixed(2) }}
                 </div>
                 <div v-if="item.dosage" class="prescriptions__detail-sub">
                   用法用量：{{ item.dosage }}

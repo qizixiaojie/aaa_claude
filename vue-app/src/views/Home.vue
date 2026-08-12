@@ -16,7 +16,7 @@ const hospital = ref({
   name: '仁爱医院',
   level: '三级甲等',
   address: '建设中路 1 号',
-  open_hours: '周一至周日 8:00-17:00',
+  openHours: '周一至周日 8:00-17:00',
 })
 
 const departments = ref([])
@@ -70,7 +70,7 @@ onMounted(async () => {
       </div>
       <div class="home__hospital-line">
         <el-icon :size="14"><Clock /></el-icon>
-        <span>门诊时间：{{ hospital.open_hours }}</span>
+        <span>门诊时间：{{ hospital.openHours }}</span>
       </div>
     </div>
 

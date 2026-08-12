@@ -12,10 +12,8 @@ const props = defineProps({
 
 const router = useRouter()
 
-// 兼容后端返回的科室名字段（department_name 或嵌套 department.name）
-const deptName = computed(
-  () => props.doctor.department_name || props.doctor.department?.name || '未知科室'
-)
+// 后端返回嵌套 department.name
+const deptName = computed(() => props.doctor.department?.name || '未知科室')
 
 // 点击卡片 → 医生详情（动态参数）
 function goDetail() {
@@ -39,13 +37,13 @@ function goBook() {
         <span class="doctor-card__name-text">{{ doctor.name }}</span>
         <el-tag size="small" type="primary" effect="plain">{{ doctor.title }}</el-tag>
       </div>
-      <div class="doctor-card__meta">{{ deptName }} · {{ doctor.years_experience }} 年经验</div>
+      <div class="doctor-card__meta">{{ deptName }} · {{ doctor.yearsExperience }} 年经验</div>
       <div class="doctor-card__specialty ellipsis">擅长：{{ doctor.specialty || '暂无' }}</div>
     </div>
 
     <div class="doctor-card__right">
       <div class="doctor-card__fee">
-        <span class="text-price">￥{{ doctor.reg_fee }}</span>
+        <span class="text-price">￥{{ doctor.regFee }}</span>
         <span class="doctor-card__fee-label">/挂号费</span>
       </div>
       <el-button type="primary" size="small" round @click.stop="goBook">立即挂号</el-button>
