@@ -1,22 +1,30 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UserFilled, Calendar, Document, FirstAidKit, ArrowRight, SwitchButton } from '@element-plus/icons-vue'
+import { UserFilled, Calendar, Document, FirstAidKit, Setting, ArrowRight, SwitchButton } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 
 /**
  * 个人中心页：用户信息卡 + 功能菜单 + 退出登录
+ * 管理员额外显示「管理后台」入口（无权限时路由守卫兜底拦截）
  */
 const router = useRouter()
 const userStore = useUserStore()
 
-// 功能菜单
-const menuItems = [
-  { label: '我的预约', icon: Calendar, name: 'appointments' },
-  { label: '我的处方', icon: Document, name: 'prescriptions' },
-  { label: '药品查询', icon: FirstAidKit, name: 'medicines' },
-]
+// 功能菜单（管理员额外显示管理后台入口）
+const isAdmin = computed(() => userStore.userInfo?.role === 'admin')
+const menuItems = computed(() => {
+  const base = [
+    { label: '我的预约', icon: Calendar, name: 'appointments' },
+    { label: '我的处方', icon: Document, name: 'prescriptions' },
+    { label: '药品查询', icon: FirstAidKit, name: 'medicines' },
+  ]
+  if (isAdmin.value) {
+    base.push({ label: '管理后台', icon: Setting, name: 'adminDashboard' })
+  }
+  return base
+})
 
 function goMenu(item) {
   router.push({ name: item.name })
@@ -56,7 +64,10 @@ onMounted(async () => {
         <el-icon :size="30"><UserFilled /></el-icon>
       </el-avatar>
       <div class="profile__info">
-        <div class="profile__name">{{ userStore.userInfo?.realName || userStore.userInfo?.username || '未设置姓名' }}</div>
+        <div class="profile__name">
+          {{ userStore.userInfo?.realName || userStore.userInfo?.username || '未设置姓名' }}
+          <el-tag v-if="isAdmin" size="small" effect="dark" type="warning">管理员</el-tag>
+        </div>
         <div class="profile__meta">
           手机号：{{ userStore.userInfo?.phone || '—' }}
           · {{ userStore.userInfo?.gender || '男' }}

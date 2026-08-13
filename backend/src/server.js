@@ -12,8 +12,9 @@ const appointmentRoutes = require('./routes/appointments');
 const medicineRoutes = require('./routes/medicines');
 const prescriptionRoutes = require('./routes/prescriptions');
 const hospitalRoutes = require('./routes/hospital');
-const { seedDemoUsers } = require('./routes/auth');
-const { ensureStatusEnum } = require('./utils/migrate');
+const adminRoutes = require('./routes/admin');
+const { seedDemoUsers, seedAdmin } = require('./routes/auth');
+const { ensureStatusEnum, ensureRoleColumn } = require('./utils/migrate');
 const { ensureSchedules } = require('./utils/scheduleGenerator');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/hospital', hospitalRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404
 app.use((req, res) => {
@@ -56,7 +58,19 @@ app.listen(PORT, async () => {
   try {
     await ensureStatusEnum();
   } catch (err) {
-    console.error('[迁移] 执行失败:', err.message);
+    console.error('[迁移] appointments.status 执行失败:', err.message);
+  }
+  // 角色字段迁移：users 增加 role（幂等）
+  try {
+    await ensureRoleColumn();
+  } catch (err) {
+    console.error('[迁移] users.role 执行失败:', err.message);
+  }
+  // 缺管理员账号则补建 admin / admin123（依赖 role 字段已就位）
+  try {
+    await seedAdmin();
+  } catch (err) {
+    console.error('[初始化] 管理员账号创建失败:', err.message);
   }
   // 自动补未来 7 天排班（幂等，缺哪补哪），解决种子排班过期后无号可挂的问题
   try {

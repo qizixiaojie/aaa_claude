@@ -22,4 +22,21 @@ async function ensureStatusEnum() {
   console.log('[迁移] appointments.status 已增加「待就诊」状态');
 }
 
-module.exports = { ensureStatusEnum };
+/**
+ * users 表增加 role 列（user/admin），管理后台用；缺则 ALTER。
+ */
+async function ensureRoleColumn() {
+  const [rows] = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'`
+  );
+  if (rows.length === 0 || Number(rows[0].cnt) > 0) return; // 表未创建或已存在
+
+  await pool.query(
+    `ALTER TABLE users
+       ADD COLUMN role ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色' AFTER avatar`
+  );
+  console.log('[迁移] users 表已增加 role 字段');
+}
+
+module.exports = { ensureStatusEnum, ensureRoleColumn };

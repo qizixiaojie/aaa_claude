@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
 
 /**
@@ -83,6 +84,49 @@ const routes = [
     component: () => import('../views/Prescriptions.vue'),
     meta: { title: '我的处方', requiresAuth: true },
   },
+  {
+    path: '/admin',
+    component: () => import('../layout/AdminLayout.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        name: 'adminDashboard',
+        component: () => import('../views/admin/AdminDashboard.vue'),
+        meta: { title: '统计概览' },
+      },
+      {
+        path: 'departments',
+        name: 'adminDepartments',
+        component: () => import('../views/admin/AdminDepartments.vue'),
+        meta: { title: '科室管理' },
+      },
+      {
+        path: 'doctors',
+        name: 'adminDoctors',
+        component: () => import('../views/admin/AdminDoctors.vue'),
+        meta: { title: '医生管理' },
+      },
+      {
+        path: 'appointments',
+        name: 'adminAppointments',
+        component: () => import('../views/admin/AdminAppointments.vue'),
+        meta: { title: '预约管理' },
+      },
+      {
+        path: 'prescriptions',
+        name: 'adminPrescriptions',
+        component: () => import('../views/admin/AdminPrescriptions.vue'),
+        meta: { title: '处方管理' },
+      },
+      {
+        path: 'schedules',
+        name: 'adminSchedules',
+        component: () => import('../views/admin/AdminSchedules.vue'),
+        meta: { title: '排班管理' },
+      },
+    ],
+  },
 ]
 
 const router = createRouter({
@@ -93,12 +137,22 @@ const router = createRouter({
   },
 })
 
-// 全局前置守卫：登录拦截
+// 全局前置守卫：登录拦截 + 管理员校验
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   // 需要登录但未登录 → 跳登录页，带上 redirect 原路径
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next({ name: 'login', query: { redirect: to.fullPath } })
+    return
+  }
+  // 管理员页面：非管理员拦截（已登录则提示并回首页）
+  if (to.meta.requiresAdmin && userStore.userInfo?.role !== 'admin') {
+    if (!userStore.isLoggedIn) {
+      next({ name: 'login', query: { redirect: to.fullPath } })
+    } else {
+      ElMessage.error('无管理员权限')
+      next({ name: 'home' })
+    }
     return
   }
   // 已登录访问登录页 → 回首页

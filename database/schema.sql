@@ -25,6 +25,7 @@ CREATE TABLE users (
     id_card     VARCHAR(18)     DEFAULT NULL            COMMENT '身份证号(可空)',
     birth_date  DATE            DEFAULT NULL            COMMENT '出生日期(可空)',
     avatar      VARCHAR(255)    DEFAULT NULL            COMMENT '头像URL(可空)',
+    role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色：user-患者 admin-管理员',
     created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_username (username),

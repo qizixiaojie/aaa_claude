@@ -51,6 +51,7 @@ router.post('/register', async (req, res) => {
     phone,
     idCard: null,
     avatar: null,
+    role: 'user',
   };
   return ok(res, { token: signToken(result.insertId), user });
 });
@@ -74,6 +75,7 @@ router.post('/login', async (req, res) => {
     gender: row.gender,
     idCard: row.id_card,
     avatar: row.avatar,
+    role: row.role || 'user',
   };
   return ok(res, { token: signToken(row.id), user });
 });
@@ -87,6 +89,7 @@ router.get('/me', auth, async (req, res) => {
             gender,
             id_card AS idCard,
             avatar,
+            role,
             DATE_FORMAT(birth_date, '%Y-%m-%d') AS birthDate
      FROM users WHERE id = ? LIMIT 1`,
     [req.userId]
@@ -117,5 +120,22 @@ async function seedDemoUsers() {
   console.log('------------------------------------------------');
 }
 
+/**
+ * 启动时调用：若不存在管理员账号，则创建 admin / admin123（角色 admin）。
+ * 独立于 seedDemoUsers——演示账号只在 users 表为空时建，管理员账号缺失则补建。
+ */
+async function seedAdmin() {
+  const rows = await query(`SELECT id FROM users WHERE role = 'admin' LIMIT 1`);
+  if (rows.length > 0) return;
+
+  const hash = await bcrypt.hash('admin123', 10);
+  await execute(
+    `INSERT INTO users (username, password, real_name, gender, phone, role) VALUES (?,?,?,?,?,?)`,
+    ['admin', hash, '系统管理员', '男', '13800000000', 'admin']
+  );
+  console.log('已创建管理员账号：admin / admin123');
+}
+
 module.exports = router;
 module.exports.seedDemoUsers = seedDemoUsers;
+module.exports.seedAdmin = seedAdmin;
