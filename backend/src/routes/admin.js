@@ -15,15 +15,15 @@ router.use(auth, requireAdmin);
 // ---------------- 统计 ----------------
 // GET /api/admin/stats
 router.get('/stats', async (req, res) => {
-  const [todayAppt] = await query(`
+  const todayAppt = await query(`
     SELECT COUNT(*) AS cnt FROM appointments WHERE appoint_date = CURDATE()
   `);
-  const [waiting] = await query(`SELECT COUNT(*) AS cnt FROM appointments WHERE status = '待就诊'`);
-  const [paidSum] = await query(
+  const waiting = await query(`SELECT COUNT(*) AS cnt FROM appointments WHERE status = '待就诊'`);
+  const paidSum = await query(
     `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE status = '成功'`
   );
-  const [userCnt] = await query(`SELECT COUNT(*) AS cnt FROM users`);
-  const [doctorCnt] = await query(`SELECT COUNT(*) AS cnt FROM doctors`);
+  const userCnt = await query(`SELECT COUNT(*) AS cnt FROM users`);
+  const doctorCnt = await query(`SELECT COUNT(*) AS cnt FROM doctors`);
   // 医生工作量：各医生已接诊（已完成）人次，取前 5
   const doctorLoad = await query(`
     SELECT doc.name AS doctorName, dep.name AS depName, COUNT(a.id) AS count
