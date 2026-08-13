@@ -2,8 +2,9 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UserFilled, Calendar, Document, FirstAidKit, Setting, ArrowRight, SwitchButton } from '@element-plus/icons-vue'
+import { UserFilled, Camera, Calendar, Document, FirstAidKit, Setting, ArrowRight, SwitchButton } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
+import { updateAvatar } from '../api/auth'
 
 /**
  * 个人中心页：用户信息卡 + 功能菜单 + 退出登录
@@ -11,6 +12,94 @@ import { useUserStore } from '../stores/user'
  */
 const router = useRouter()
 const userStore = useUserStore()
+
+// ---------------- 头像上传 ----------------
+// 点击头像 → 打开文件选择器 → canvas 压缩 → base64 data URL 上传存库
+const fileInput = ref(null)
+const uploading = ref(false)
+const avatarSrc = computed(() => userStore.userInfo?.avatar || '')
+
+// 头像 max 300x300，压缩为 JPEG，控制存库体积（单张约几十 KB）
+function resizeToAvatar(img, maxSize = 300) {
+  const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+  const w = Math.round(img.width * scale)
+  const h = Math.round(img.height * scale)
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#fff' // 白底：PNG 透明图转 JPEG 时避免变黑
+  ctx.fillRect(0, 0, w, h)
+  ctx.drawImage(img, 0, 0, w, h)
+  return canvas.toDataURL('image/jpeg', 0.85)
+}
+
+function openFilePicker() {
+  if (!uploading.value) fileInput.value?.click()
+}
+
+// 选择本地文件 → 读取 → 压缩 → 上传
+function onFileChange(e) {
+  const file = e.target.files && e.target.files[0]
+  e.target.value = '' // 清空以便再次选择同一文件
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过 5MB')
+    return
+  }
+  uploading.value = true
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    const img = new Image()
+    img.onload = async () => {
+      try {
+        await uploadAvatar(resizeToAvatar(img))
+      } finally {
+        uploading.value = false
+      }
+    }
+    img.onerror = () => {
+      uploading.value = false
+      ElMessage.error('图片读取失败，请换一张试试')
+    }
+    img.src = ev.target.result
+  }
+  reader.onerror = () => {
+    uploading.value = false
+    ElMessage.error('文件读取失败')
+  }
+  reader.readAsDataURL(file)
+}
+
+async function uploadAvatar(dataUrl) {
+  try {
+    await updateAvatar({ avatar: dataUrl })
+    await userStore.fetchMe() // 刷新用户信息（含头像）并写回 localStorage
+    ElMessage.success('头像更新成功')
+  } catch {
+    /* 拦截器已提示 */
+  }
+}
+
+// 移除头像（确认后置空）
+async function removeAvatar() {
+  try {
+    await ElMessageBox.confirm('确定要移除头像吗？', '提示', { type: 'warning' })
+  } catch {
+    return // 用户取消
+  }
+  try {
+    await updateAvatar({ avatar: null })
+    await userStore.fetchMe()
+    ElMessage.success('已移除头像')
+  } catch {
+    /* 拦截器已提示 */
+  }
+}
 
 // 功能菜单（管理员额外显示管理后台入口）
 const isAdmin = computed(() => userStore.userInfo?.role === 'admin')
@@ -60,9 +149,16 @@ onMounted(async () => {
   <div class="page profile">
     <!-- 用户信息卡 -->
     <div class="card profile__user">
-      <el-avatar :size="60" class="profile__avatar">
-        <el-icon :size="30"><UserFilled /></el-icon>
-      </el-avatar>
+      <!-- 头像：点击选择本地图片文件作为头像 -->
+      <div class="profile__avatar-wrap" v-loading="uploading" @click="openFilePicker">
+        <el-avatar :size="68" :src="avatarSrc" class="profile__avatar">
+          <el-icon :size="30"><UserFilled /></el-icon>
+        </el-avatar>
+        <div class="profile__avatar-badge">
+          <el-icon :size="12"><Camera /></el-icon>
+        </div>
+        <input ref="fileInput" type="file" accept="image/*" class="profile__avatar-input" @change="onFileChange" />
+      </div>
       <div class="profile__info">
         <div class="profile__name">
           {{ userStore.userInfo?.realName || userStore.userInfo?.username || '未设置姓名' }}
@@ -71,6 +167,10 @@ onMounted(async () => {
         <div class="profile__meta">
           手机号：{{ userStore.userInfo?.phone || '—' }}
           · {{ userStore.userInfo?.gender || '男' }}
+        </div>
+        <div class="profile__avatar-tip">
+          点击头像更换照片
+          <span v-if="avatarSrc" class="profile__avatar-remove" @click.stop="removeAvatar">移除</span>
         </div>
       </div>
     </div>
@@ -109,9 +209,50 @@ onMounted(async () => {
   border: none;
 }
 
+.profile__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
 .profile__avatar {
   background-color: rgba(255, 255, 255, 0.25);
   border: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+/* 头像右下角小相机角标：提示可点击更换 */
+.profile__avatar-badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+/* 隐藏的文件选择框（点击头像触发） */
+.profile__avatar-input {
+  display: none;
+}
+
+.profile__avatar-tip {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.profile__avatar-remove {
+  margin-left: 8px;
+  padding: 0 4px;
+  color: #ffe58f;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .profile__name {

@@ -14,13 +14,14 @@ const prescriptionRoutes = require('./routes/prescriptions');
 const hospitalRoutes = require('./routes/hospital');
 const adminRoutes = require('./routes/admin');
 const { seedDemoUsers, seedAdmin } = require('./routes/auth');
-const { ensureStatusEnum, ensureRoleColumn } = require('./utils/migrate');
+const { ensureStatusEnum, ensureRoleColumn, ensureAvatarLongtext } = require('./utils/migrate');
 const { ensureSchedules } = require('./utils/scheduleGenerator');
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// 上传头像为 base64 data URL，放宽 JSON 体积（前端已压缩，单张约几十 KB）
+app.use(express.json({ limit: '2mb' }));
 
 // 统一前缀 /api 挂载各业务路由
 app.use('/api/auth', authRoutes);
@@ -65,6 +66,12 @@ app.listen(PORT, async () => {
     await ensureRoleColumn();
   } catch (err) {
     console.error('[迁移] users.role 执行失败:', err.message);
+  }
+  // 头像字段迁移：users.avatar 扩为 MEDIUMTEXT，容纳 base64 data URL（幂等）
+  try {
+    await ensureAvatarLongtext();
+  } catch (err) {
+    console.error('[迁移] users.avatar 扩列执行失败:', err.message);
   }
   // 缺管理员账号则补建 admin / admin123（依赖 role 字段已就位）
   try {

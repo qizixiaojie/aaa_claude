@@ -99,6 +99,31 @@ router.get('/me', auth, async (req, res) => {
   return ok(res, { user: users[0] });
 });
 
+// PUT /api/auth/avatar  body{ avatar: "data:image/jpeg;base64,..." | null }
+// 本地上传头像：前端已用 canvas 压缩为 base64 data URL，直接存库（users.avatar 为 MEDIUMTEXT）。
+// avatar 传 null 表示移除头像。
+router.put('/avatar', auth, async (req, res) => {
+  const { avatar } = req.body || {};
+
+  // 移除头像
+  if (avatar === null || avatar === '') {
+    await execute('UPDATE users SET avatar = NULL WHERE id = ?', [req.userId]);
+    return ok(res, { avatar: null });
+  }
+
+  // 校验：必须是图片 data URL（image/png|jpeg|jpg|webp|gif）
+  if (typeof avatar !== 'string' || !/^data:image\/(png|jpeg|jpg|webp|gif);base64,/.test(avatar)) {
+    return fail(res, '头像格式不正确，请选择图片文件');
+  }
+  // 解码后体积上限约 512KB，防止超大图片刷爆数据库
+  const base64Part = avatar.split(',')[1] || '';
+  const byteLen = Math.floor((base64Part.length * 3) / 4);
+  if (byteLen > 512 * 1024) return fail(res, '图片过大，请选择更小的图片');
+
+  await execute('UPDATE users SET avatar = ? WHERE id = ?', [avatar, req.userId]);
+  return ok(res, { avatar });
+});
+
 /**
  * 启动时调用：若 users 表为空，创建演示账号并打印到控制台
  */

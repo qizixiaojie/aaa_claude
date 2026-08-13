@@ -39,4 +39,23 @@ async function ensureRoleColumn() {
   console.log('[迁移] users 表已增加 role 字段');
 }
 
-module.exports = { ensureStatusEnum, ensureRoleColumn };
+/**
+ * users.avatar 从 VARCHAR(255) 扩为 MEDIUMTEXT：
+ * 本地上传头像以 base64 data URL 存库（一张压缩后图片约几万字符，255 放不下），
+ * 原 URL 型头像（如医生头像、无头像空值）不受影响。
+ */
+async function ensureAvatarLongtext() {
+  const [rows] = await pool.query(
+    `SELECT DATA_TYPE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'avatar'`
+  );
+  if (rows.length === 0) return; // 表尚未创建
+  const type = rows[0].DATA_TYPE;
+  if (type === 'text' || type === 'mediumtext' || type === 'longtext') return; // 已是文本类型
+  await pool.query(
+    `ALTER TABLE users MODIFY avatar MEDIUMTEXT COMMENT '头像URL或dataURL(可空)'`
+  );
+  console.log('[迁移] users.avatar 已扩为 MEDIUMTEXT（支持本地上传头像）');
+}
+
+module.exports = { ensureStatusEnum, ensureRoleColumn, ensureAvatarLongtext };

@@ -19,3 +19,9 @@ export function register(data) {
 export function getMe() {
   return request.get('/auth/me')
 }
+
+// 更新头像：{ avatar: "data:image/...;base64,..." | null } → { avatar }
+// 前端先 canvas 压缩成小图再上传；传 null 表示移除头像
+export function updateAvatar(data) {
+  return request.put('/auth/avatar', data)
+}
