@@ -121,14 +121,25 @@ async function seedDemoUsers() {
 }
 
 /**
- * 启动时调用：若不存在管理员账号，则创建 admin / admin123（角色 admin）。
- * 独立于 seedDemoUsers——演示账号只在 users 表为空时建，管理员账号缺失则补建。
+ * 启动时调用：确保存在管理员账号（admin / admin123）。
+ * 兼容旧数据：
+ *   - 已有 role='admin' 的账号 → 不动；
+ *   - 存在同名 admin 账号但 role='user'（role 字段是后加的，旧账号默认 user）→ 提升为管理员，
+ *     避免 INSERT 撞 username 唯一键失败；
+ *   - 都没有 → 新建管理员。
  */
 async function seedAdmin() {
-  const rows = await query(`SELECT id FROM users WHERE role = 'admin' LIMIT 1`);
-  if (rows.length > 0) return;
+  const admins = await query(`SELECT id FROM users WHERE role = 'admin' LIMIT 1`);
+  if (admins.length > 0) return; // 已有管理员
 
   const hash = await bcrypt.hash('admin123', 10);
+  const byName = await query(`SELECT id FROM users WHERE username = 'admin' LIMIT 1`);
+  if (byName.length > 0) {
+    await execute(`UPDATE users SET role = 'admin' WHERE id = ?`, [byName[0].id]);
+    console.log('已将既有账号 admin 提升为管理员（密码不变：admin123）');
+    return;
+  }
+
   await execute(
     `INSERT INTO users (username, password, real_name, gender, phone, role) VALUES (?,?,?,?,?,?)`,
     ['admin', hash, '系统管理员', '男', '13800000000', 'admin']
