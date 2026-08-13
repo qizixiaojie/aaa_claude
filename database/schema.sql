@@ -95,7 +95,7 @@ CREATE TABLE appointments (
     appoint_date DATE            NOT NULL                COMMENT '就诊日期',
     period       ENUM('上午','下午') NOT NULL            COMMENT '就诊时段',
     fee          DECIMAL(6,2)    NOT NULL DEFAULT 0.00   COMMENT '挂号费(元)',
-    status       ENUM('待支付','已支付','已完成','已取消') NOT NULL DEFAULT '待支付' COMMENT '状态',
+    status       ENUM('待支付','已支付','待就诊','已完成','已取消') NOT NULL DEFAULT '待支付' COMMENT '状态',
     queue_no     INT             DEFAULT NULL            COMMENT '排队号',
     patient_name VARCHAR(50)     NOT NULL                COMMENT '就诊人姓名',
     created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

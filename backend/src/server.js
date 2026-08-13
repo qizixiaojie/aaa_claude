@@ -13,6 +13,8 @@ const medicineRoutes = require('./routes/medicines');
 const prescriptionRoutes = require('./routes/prescriptions');
 const hospitalRoutes = require('./routes/hospital');
 const { seedDemoUsers } = require('./routes/auth');
+const { ensureStatusEnum } = require('./utils/migrate');
+const { ensureSchedules } = require('./utils/scheduleGenerator');
 
 const app = express();
 
@@ -49,5 +51,19 @@ app.listen(PORT, async () => {
     await seedDemoUsers();
   } catch (err) {
     console.error('初始化演示账号失败（请确认数据库已导入 schema 且 .env 配置正确）:', err.message);
+  }
+  // 状态字段迁移：appointments.status 增加「待就诊」（幂等，重复启动不重复执行）
+  try {
+    await ensureStatusEnum();
+  } catch (err) {
+    console.error('[迁移] 执行失败:', err.message);
+  }
+  // 自动补未来 7 天排班（幂等，缺哪补哪），解决种子排班过期后无号可挂的问题
+  try {
+    const added = await ensureSchedules();
+    if (added > 0) console.log(`[排班] 已自动补齐 ${added} 条排班`);
+    else console.log('[排班] 未来 7 天排班完整，无需补充');
+  } catch (err) {
+    console.error('[排班] 自动生成失败:', err.message);
   }
 });

@@ -5,12 +5,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import StatusTag from '../components/StatusTag.vue'
 import EmptyState from '../components/EmptyState.vue'
 import PubPaymentDialog from '../components/PubPaymentDialog.vue'
-import { listAppointments, cancelAppointment, payAppointment } from '../api/appointments'
+import { listAppointments, cancelAppointment, payAppointment, checkinAppointment, finishAppointment } from '../api/appointments'
 
 /**
  * 我的预约列表
  * - 卡片式展示预约信息 + 状态标签
- * - 操作按钮按状态显示：待支付→[去支付][取消]、已支付→[查看处方][取消]、已完成→[查看处方]
+ * - 就诊闭环：待支付→[去支付][取消] 已支付→[到院签到][取消] 待就诊→[接诊完成] 已完成→[查看处方]
+ * - 已支付以上状态展示就诊码（= 支付凭证号）；接诊完成时后台才生成电子处方
  * - 支付复用 PubPaymentDialog 组件
  */
 const router = useRouter()
@@ -62,8 +63,48 @@ async function handleCancel(appt) {
 // 支付成功
 function handlePaySuccess(result) {
   const cert = result?.payment?.paymentNo
-  ElMessage.success(cert ? `支付成功，支付凭证 ${cert}` : '支付成功')
+  ElMessage.success(cert ? `支付成功，就诊码 ${cert}` : '支付成功')
   fetchList()
+}
+
+// 到院签到：已支付 → 待就诊
+async function handleCheckin(appt) {
+  try {
+    await ElMessageBox.confirm(
+      `确认患者「${appt.patientName || ''}」已到院，请出示就诊码签到？`,
+      '到院签到',
+      { type: 'info', confirmButtonText: '确认签到', cancelButtonText: '再等等' }
+    )
+  } catch {
+    return // 用户取消
+  }
+  try {
+    await checkinAppointment(appt.id)
+    ElMessage.success('签到成功，请按排队号等待就诊')
+    fetchList()
+  } catch {
+    /* 错误已由拦截器提示 */
+  }
+}
+
+// 接诊完成（演示医生操作）：待就诊 → 已完成，此刻生成电子处方
+async function handleFinish(appt) {
+  try {
+    await ElMessageBox.confirm('确认该患者已完成就诊？完成后将生成电子处方。', '接诊完成', {
+      type: 'success',
+      confirmButtonText: '确认完成',
+      cancelButtonText: '再等等',
+    })
+  } catch {
+    return // 用户取消
+  }
+  try {
+    await finishAppointment(appt.id)
+    ElMessage.success('就诊完成，电子处方已生成')
+    fetchList()
+  } catch {
+    /* 错误已由拦截器提示 */
+  }
 }
 
 // 查看处方
@@ -103,20 +144,20 @@ onMounted(fetchList)
             <span class="appointments__label">预约时间</span>
             <span>{{ appt.createdAt || '—' }}</span>
           </div>
-          <!-- 已支付/已完成：展示支付时间与唯一支付凭证号 -->
-          <template v-if="appt.status === '已支付' || appt.status === '已完成'">
+          <!-- 已支付/待就诊/已完成：展示支付时间与就诊码（= 唯一支付凭证号） -->
+          <template v-if="appt.status === '已支付' || appt.status === '待就诊' || appt.status === '已完成'">
             <div class="appointments__row">
               <span class="appointments__label">支付时间</span>
               <span>{{ appt.paidAt || '—' }}</span>
             </div>
             <div class="appointments__row">
-              <span class="appointments__label">支付凭证</span>
+              <span class="appointments__label">就诊码</span>
               <span class="appointments__cert">{{ appt.paymentNo || '—' }}</span>
             </div>
           </template>
         </div>
 
-        <!-- 按状态显示操作按钮 -->
+        <!-- 按状态显示操作按钮（就诊闭环：支付 → 签到 → 接诊完成 → 看处方） -->
         <div class="appointments__actions">
           <template v-if="appt.status === '待支付'">
             <el-button size="small" @click="handleCancel(appt)">取消</el-button>
@@ -124,7 +165,10 @@ onMounted(fetchList)
           </template>
           <template v-else-if="appt.status === '已支付'">
             <el-button size="small" @click="handleCancel(appt)">取消</el-button>
-            <el-button size="small" type="primary" plain @click="viewPrescription">查看处方</el-button>
+            <el-button size="small" type="primary" @click="handleCheckin(appt)">到院签到</el-button>
+          </template>
+          <template v-else-if="appt.status === '待就诊'">
+            <el-button size="small" type="success" @click="handleFinish(appt)">接诊完成</el-button>
           </template>
           <template v-else-if="appt.status === '已完成'">
             <el-button size="small" type="primary" plain @click="viewPrescription">查看处方</el-button>

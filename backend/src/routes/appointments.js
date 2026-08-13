@@ -111,7 +111,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // GET /api/appointments/my 需登录
-// 说明：不返回已取消的预约（取消后即从列表移除）；已支付/已完成附带上支付时间与支付凭证号
+// 说明：不返回已取消的预约（取消后即从列表移除）；已支付/待就诊/已完成附带上支付时间与就诊码（paymentNo）
 router.get('/my', auth, async (req, res) => {
   const rows = await query(`
     SELECT a.id,
@@ -195,7 +195,7 @@ router.post('/:id/cancel', auth, async (req, res) => {
   }
 });
 
-// POST /api/appointments/:id/pay  body{method} 需登录（模拟支付，成功后自动生成电子处方）
+// POST /api/appointments/:id/pay  body{method} 需登录（模拟支付，成功后生成就诊码；处方改到接诊完成时生成）
 router.post('/:id/pay', auth, async (req, res) => {
   const id = Number(req.params.id);
   const { method = '微信支付' } = req.body || {};
@@ -222,7 +222,7 @@ router.post('/:id/pay', auth, async (req, res) => {
     }
 
     // 1. 插入支付记录（模拟成功）：生成唯一支付凭证号（13 位数字 + 2 位字母，随机无规律），
-    //    支付成功时间 paid_at = NOW() 即此刻
+    //    该凭证号同时作为就诊码；支付成功时间 paid_at = NOW() 即此刻
     const paymentNo = await genCertificateNo(conn);
     await conn.query(
       `INSERT INTO payments (payment_no, user_id, order_no, amount, method, status, paid_at)
@@ -231,15 +231,86 @@ router.post('/:id/pay', auth, async (req, res) => {
     );
     const paidAt = formatDateTime(new Date());
 
-    // 2. 预约置为已支付
+    // 2. 预约置为已支付（不再立即生成处方；处方在接诊完成 POST /:id/finish 时生成）
     await conn.query('UPDATE appointments SET status = ? WHERE id = ?', ['已支付', id]);
-
-    // 3. 自动生成电子处方（演示取药流程）
-    await createPrescription(conn, appt, id, req.userId);
 
     await conn.commit();
     return ok(res, {
       payment: { paymentNo, paidAt, amount: appt.fee, method, status: '成功' },
+    });
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+});
+
+// POST /api/appointments/:id/checkin 需登录（到院签到：已支付 → 待就诊）
+router.post('/:id/checkin', auth, async (req, res) => {
+  const id = Number(req.params.id);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      'SELECT * FROM appointments WHERE id = ? AND user_id = ? FOR UPDATE',
+      [id, req.userId]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return fail(res, '预约不存在', 404);
+    }
+    const appt = rows[0];
+    if (appt.status !== '已支付') {
+      await conn.rollback();
+      return fail(res, '当前状态不可签到（需先完成支付）');
+    }
+
+    await conn.query('UPDATE appointments SET status = ? WHERE id = ?', ['待就诊', id]);
+
+    await conn.commit();
+    return ok(res, {
+      appointment: { id: appt.id, orderNo: appt.order_no, queueNo: appt.queue_no, fee: appt.fee, status: '待就诊' },
+    });
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+});
+
+// POST /api/appointments/:id/finish 需登录（接诊完成：待就诊 → 已完成，此刻生成电子处方）
+router.post('/:id/finish', auth, async (req, res) => {
+  const id = Number(req.params.id);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      'SELECT * FROM appointments WHERE id = ? AND user_id = ? FOR UPDATE',
+      [id, req.userId]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return fail(res, '预约不存在', 404);
+    }
+    const appt = rows[0];
+    if (appt.status !== '待就诊') {
+      await conn.rollback();
+      return fail(res, '当前状态不可完成就诊（需先到院签到）');
+    }
+
+    // 1. 生成电子处方（接诊完成后才有处方）
+    await createPrescription(conn, appt, id, req.userId);
+
+    // 2. 置为已完成
+    await conn.query('UPDATE appointments SET status = ? WHERE id = ?', ['已完成', id]);
+
+    await conn.commit();
+    return ok(res, {
+      appointment: { id: appt.id, orderNo: appt.order_no, queueNo: appt.queue_no, fee: appt.fee, status: '已完成' },
     });
   } catch (err) {
     await conn.rollback();

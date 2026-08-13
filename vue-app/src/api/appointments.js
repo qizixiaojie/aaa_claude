@@ -23,3 +23,13 @@ export function cancelAppointment(id) {
 export function payAppointment(id, data) {
   return request.post(`/appointments/${id}/pay`, data)
 }
+
+// 到院签到：已支付 → 待就诊
+export function checkinAppointment(id) {
+  return request.post(`/appointments/${id}/checkin`)
+}
+
+// 接诊完成：待就诊 → 已完成（此刻才生成电子处方）
+export function finishAppointment(id) {
+  return request.post(`/appointments/${id}/finish`)
+}

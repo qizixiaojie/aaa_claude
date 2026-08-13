@@ -3,7 +3,7 @@ import { computed } from 'vue'
 
 /**
  * 状态标签（预约 / 处方状态 → el-tag 类型）
- * 待支付→warning、已支付→success、已完成→info、已取消→danger
+ * 待支付→warning、已支付→success、待就诊→primary、已完成→info、已取消→danger
  * 待取药→primary、已取药→success
  * 用于：我的预约、处方页
  */
@@ -14,6 +14,7 @@ const props = defineProps({
 const STATUS_MAP = {
   待支付: 'warning',
   已支付: 'success',
+  待就诊: 'primary',
   已完成: 'info',
   已取消: 'danger',
   待取药: 'primary',
